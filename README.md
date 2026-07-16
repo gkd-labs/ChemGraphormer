@@ -274,9 +274,10 @@ print("Convergence Efficiency:", gate0_ablate_convergence_efficiency)
 
 ---
 
-## 8. OGB PCQM4Mv2 Pretraining
+## 8. OGB PCQM4Mv2 training
 
-Graph computation follows the same steps as Section 5, with `run_graph_generator_ogb` in place of `run_graph_generator_ablate` and `lap_k = 51`.
+Note: Input SMILES must be a Python DataFrame with a column named "smiles".
+Graph computation for OGB follows the same steps as Section 5, but replace replace `run_graph_generator_ablate` with `run_graph_generator_ogb`. The only difference is `k` in the Laplacian computation: `k = 9` for QM9 ablation and `k = 51` for OGB training.
 
 ### Run training
 
@@ -327,7 +328,7 @@ python /content/make_gap_value_prediction.py \
 
 ---
 
-## Pretrained Weights
+## Best model weights
 
 > **[All best model weights can be downloaded or retrieved via the google link `https://drive.google.com/drive/folders/1ioIc7KZNwoHA_AD-8ImEc5Tkp2h5bJb8?usp=sharing`]**
 
@@ -356,8 +357,10 @@ python /content/make_gap_value_prediction.py \
 
 ## Acknowledgements
 
+```
 Department of Biomedical Engineering, University of Ghana.
 Supervisors: Prof. Samuel Kojo Kwofie · Dr. Claude Fiifi Hayford.
 Experiments: Google Colab · NVIDIA L4 GPU (22.5 GB).
+```
 
 **License:** MIT
