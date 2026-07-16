@@ -359,7 +359,7 @@ python /content/make_gap_value_prediction.py \
 
 ```
 Department of Biomedical Engineering, University of Ghana.
-Supervisors: Prof. Samuel Kojo Kwofie · Dr. Claude Fiifi Hayford.
+Supervisors: Prof. Samuel Kojo Kwofie.  |  Dr. Claude Fiifi Hayford.
 Experiments: Google Colab · NVIDIA L4 GPU (22.5 GB).
 ```
 
