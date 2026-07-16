@@ -1,6 +1,6 @@
 # ChemGraphormer
 
-**A Bond-Aware Sparse Graph Attention Transformer for Molecular Property Prediction**
+**A Bond-Aware Message-Passing Sparse Graph Attention Transformer for Molecular Property Prediction**
 
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/)
 [![PyTorch 2.4](https://img.shields.io/badge/PyTorch-2.4.0-orange.svg)](https://pytorch.org/)
