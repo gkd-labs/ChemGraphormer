@@ -10,7 +10,7 @@
 
 ## Overview
 
-ChemGraphormer is a chemically inductive sparse graph attention Transformer that learns molecular representations exclusively from **2D molecular graphs** — no 3D coordinates, bond lengths, or conformers required. It introduces sparse bond-restricted dot-product attention computed only over directly bonded atom pairs via `scatter_softmax` / `scatter_add`, with triple simultaneous bond conditioning of the attention logit, value content, and message amplitude within a single unified attention operation.
+ChemGraphormer is a chemically inductive sparse graph attention Transformer that learns molecular representations exclusively from **2D molecular graphs**: no 3D coordinates, bond lengths, or conformers required. It introduces sparse bond-restricted dot-product attention computed only over directly bonded atom pairs via `scatter_softmax` / `scatter_add`, with triple simultaneous bond conditioning of the attention logit, value content, and message amplitude within a single unified attention operation.
 
 **QM9 ZPVE results (standard benchmark split adapted from DimeNet— 110k/10k/10,831):**
 
