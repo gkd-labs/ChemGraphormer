@@ -16,8 +16,8 @@ ChemGraphormer is a chemically inductive sparse graph attention Transformer that
 
 | Model | ZPVE MAE on 10831 (meV) | 3D? |
 |---|---|---|
-| **ChemGraphormer — Mean Pool + Gate b=0** | **8.75** | **No** |
-| **ChemGraphormer — Mean Pool + Gate b=1** | **8.37** | **No** |
+| **ChemGraphormer (Mean Pool + Gate b=0)** | **8.75** | **No** |
+| **ChemGraphormer (Mean Pool + Gate b=1)** | **8.37** | **No** |
 | DimeNet++ | 1.210 | Yes |
 | PaiNN | 1.280 | Yes |
 | SchNet | 1.700 | Yes |
