@@ -1,16 +1,9 @@
---find-links https://data.dgl.ai/wheels/torch-2.4/repo.html
-datasets==5.0.0
-torch==2.4.0
-torch-geometric==2.6.1
-torch-scatter==2.1.2
-torch-sparse==0.6.18
-numpy==1.26.4
-rdkit==2026.3.2
-scikit-learn==1.6.1
-tqdm==4.67.3
-pandas==2.2.2
-seaborn==0.13.2
-matplotlib==3.10.0
+torch
+torch-geometric
+torch-scatter
+torch-sparse
+numpy
+rdkit
+tqdm
+pandas
 ogb==1.3.6
-gensim==4.3.3
-dgl
