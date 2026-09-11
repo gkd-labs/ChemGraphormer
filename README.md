@@ -11,7 +11,7 @@
 ## Overview
 
 ChemGraphormer is a chemically inductive sparse graph attention Transformer that learns molecular representations exclusively from **2D molecular graphs**: no 3D coordinates, bond lengths, or conformers required. It introduces sparse bond-restricted dot-product attention computed only over directly bonded atom pairs via `scatter_softmax` / `scatter_add`, with triple simultaneous bond conditioning of the attention logit, value content, and message amplitude within a single unified attention operation.
- 
+
 **QM9 ZPVE results (standard benchmark split adapted from DimeNet — 110k/10k/10,831):**
 
 | Model | ZPVE MAE on 10831 (meV) | 3D? |
@@ -21,8 +21,6 @@ ChemGraphormer is a chemically inductive sparse graph attention Transformer that
 | DimeNet++ | 1.210 | Yes |
 | PaiNN | 1.280 | Yes |
 | SchNet | 1.700 | Yes |
-
-**OGB PCQM4Mv2:** validation MAE of **0.1013 eV** (rank 34/42) on a single NVIDIA L4 GPU (22.5 GB).
 
 ---
 
@@ -39,22 +37,33 @@ cd ChemGraphormer
 
 ## 2. Install Requirements
 
-This repo uses **two** requirements files for two different environments:
+This repo uses **three** requirements files for three different environments:
 
 - **`requirements.txt`** — for training (GPU/CUDA-enabled machine).
-- **`graph_requirements.txt`** — for graph data computation (CPU, exact pinned versions for `torch` + `dgl` + `torchdata`). This currently **cannot run in Google Colab** (no compatible DGL wheel there) — run it in a local terminal or VM instead.
+- **`graph_requirements_cpu_only.txt`** — for graph data computation on a CPU-only machine (exact pinned versions for `torch` + `dgl` + `torchdata`).
+- **`graph_requirements_gpu_avaialble.txt`** — for graph data computation on a machine with a CUDA-capable GPU available.
+
+Both graph-computation requirements files currently **cannot run in Google Colab** — there is no DGL wheel there compatible with any available torch and python version, on either CPU or GPU. Run graph computation in a local terminal or virtual machine instead.
 
 ```bash
-# On your training machine (GPU)
-pip install -r requirements.txt
+# RUN ONLY ONE OF THESE TWO DEPENDING ON THE MACHINE YOU ARE USING, WHETHER CPU ONLY OR WITH GPU AVAILABLE
 
-# On your graph-computation machine (terminal, not Colab)
-pip install -r graph_requirements.txt
+
+# On your graph-computation machine with only CPU available (terminal, not Colab compatible)
+pip install -r graph_requirements_cpu_only.txt
+
+# On your graph-computation machine with available GPU (terminal or virtual machine, not Colab compatible) 
+pip install -r graph_requirements_gpu_avaialble.txt
+```
+
+```bash
+# On your training machine (GPU) - Colab compatible
+pip install -r requirements.txt
 ```
 
 ---
 
-## 4. QM9 Dataset Preparation
+## 3. QM9 Dataset Preparation
 
 Download QM9 from HuggingFace, remove uncharacterized molecules, and split into the standard benchmark splits (adopted from DimeNet — 110,000 : 10,000 : 10,831) in one step:
 
@@ -69,14 +78,14 @@ This saves four CSV files to the working directory:
 - `qm9_val.csv` — 10,000 molecules
 - `qm9_test.csv` — 10,831 molecules
 
-Each split CSV has `smiles` and `zero_point_energy` columns, ready for Section 5.
+Each split CSV has `smiles` and `zero_point_energy` columns, ready for Section 4.
 
 ---
 
-## 5. Graph Data Computation
+## 4. Graph Data Computation
 
-> **Note:** Run this section in a terminal with `graph_requirements.txt` installed — it currently **cannot run in Google Colab** (see Section 2). Input SMILES CSVs need a column named `smiles`.
-> One script, `utils/graph_generator.py`, handles both QM9 ablation and OGB graph computation — `--k` sets the max heavy-atom Laplacian PE dimension: **k = 9** for QM9 ablation, **k = 51** for OGB pretraining.
+> **Note:** Run this section in a terminal with `graph_requirements_cpu_only.txt` (CPU-only machine) or `graph_requirements_gpu_avaialble.txt` (GPU-available machine) installed, see Section 2. Graph computation currently **cannot run in Google Colab**, on either CPU or GPU, since there is no DGL wheel there compatible with any available torch and python version. Pass the exact Input SMILES CSVs column named to `--smiles-col` or will default to `smiles`.
+> `utils/graph_generator.py` handles all graph computations. Only set `--k` to the max heavy-atom (node) Laplacian positional encoding (PE) dimension: **k = 9** for QM9 ablation, **k = 51** for OGB pretraining.
 
 ### Compute graphs
 
@@ -116,31 +125,31 @@ python utils/add_graph_labels.py \
     --output train_graphs.pt
 ```
 
-This saves a list of `torch_geometric.data.Data` objects (`x`, `edge_index`, `edge_attr`, `lap_pos`, `y`) to the `--output` path, ready for Section 6/8 training. Repeat for each split.
+This saves a list of `torch_geometric.data.Data` objects (`x`, `edge_index`, `edge_attr`, `y`, `lap_pos`) to the `--output` path, ready for Section 5/7 training. Repeat for each split.
 
 ---
 
-## 6. Ablation Training
+## 5. Ablation Training
 
 The example below runs **Gate Init Zero** (Group A). To run any other condition, swap in the corresponding script from the table below and update `--ckpt_dir` and `--epoch_log_path` accordingly.
 
 | Condition | Script |
 |---|---|
-| Gate b=0 (full model) | `ablate/chemgraphormer_ablate_gate_zero_training_pipeline.py` |
-| Gate b=1 (full model) | `ablate/chemgraphormer_ablate_gate_one_training_pipeline.py` |
-| Gate b=2 (full model) | `ablate/chemgraphormer_ablate_gate_two_training_pipeline.py` |
-| No edge bias | `ablate/chemgraphormer_ablate_edge_training_pipeline.py` |
-| No ΔRPE bias | `ablate/chemgraphormer_ablate_rpe_training_pipeline.py` |
-| No edge bias + no ΔRPE | `ablate/chemgraphormer_ablate_rpe_edge_training_pipeline.py` |
-| No sinusoidal RPE | `ablate/chemgraphormer_ablate_no_sinusoidal_rpe_training_pipeline.py` |
-| No edge msg + no gate | `ablate/chemgraphormer_ablate_no_edge_msg_and_gate_training_pipeline.py` |
-| Static edge flow (no gate) | `ablate/chemgraphormer_ablate_static_edge_flow_training_pipeline.py` |
-| Mean pool + gate b=0 | `ablate/chemgraphormer_ablate_use_mean_pooling_gate_zero_training_pipeline.py` |
-| Mean pool + gate b=1 | `ablate/chemgraphormer_ablate_use_mean_pooling_gate_one_training_pipeline.py` |
-| Mean pool + gate b=2 | `ablate/chemgraphormer_ablate_use_mean_pooling_gate_two_training_pipeline.py` |
+| Gate b=0 (full model) | `utils/chemgraphormer_ablate_gate_zero_training_pipeline.py` |
+| Gate b=1 (full model) | `utils/chemgraphormer_ablate_gate_one_training_pipeline.py` |
+| Gate b=2 (full model) | `utils/chemgraphormer_ablate_gate_two_training_pipeline.py` |
+| No edge bias | `utils/chemgraphormer_ablate_edge_training_pipeline.py` |
+| No ΔRPE bias | `utils/chemgraphormer_ablate_rpe_training_pipeline.py` |
+| No edge bias + no ΔRPE | `utils/chemgraphormer_ablate_rpe_edge_training_pipeline.py` |
+| No sinusoidal RPE | `utils/chemgraphormer_ablate_no_sinusoidal_rpe_training_pipeline.py` |
+| No edge msg + no gate | `utils/chemgraphormer_ablate_no_edge_msg_and_gate_training_pipeline.py` |
+| Static edge flow (no gate) | `utils/chemgraphormer_ablate_static_edge_flow_training_pipeline.py` |
+| Mean pool + gate b=0 | `utils/chemgraphormer_ablate_use_mean_pooling_gate_zero_training_pipeline.py` |
+| Mean pool + gate b=1 | `utils/chemgraphormer_ablate_use_mean_pooling_gate_one_training_pipeline.py` |
+| Mean pool + gate b=2 | `utils/chemgraphormer_ablate_use_mean_pooling_gate_two_training_pipeline.py` |
 
 ```bash
-python ablate/chemgraphormer_ablate_gate_zero_training_pipeline.py \
+python utils/chemgraphormer_ablate_gate_zero_training_pipeline.py \
     --train_path              train_graphs.pt \
     --valid_path               valid_graphs.pt \
     --ckpt_dir                 gate0/ \
@@ -166,12 +175,12 @@ python ablate/chemgraphormer_ablate_gate_zero_training_pipeline.py \
 
 ---
 
-## 7. Test Set Prediction and Convergence Efficiency
+## 6. Test Set Prediction and Convergence Efficiency
 
 ### Make predictions on test set
 
 ```bash
-python ablate/predict_zpve_values_attnpl.py \
+python utils/predict_zpve_values_attnpl.py \
     --dataset_path    test_graph_data.pt \
     --checkpoint_path gate0/chemgraphormer_gate_zero_ablation_best_model.pt \
     --variant         gate_zero \
@@ -194,20 +203,20 @@ This prints the dataset size and, if the dataset has labels, the test MAE, and s
 
 | `--variant` | Trained by |
 |---|---|
-| `gate_zero` | `ablate/chemgraphormer_ablate_gate_zero_training_pipeline.py` |
-| `gate_one` | `ablate/chemgraphormer_ablate_gate_one_training_pipeline.py` |
-| `gate_two` | `ablate/chemgraphormer_ablate_gate_two_training_pipeline.py` |
-| `edge` | `ablate/chemgraphormer_ablate_edge_training_pipeline.py` |
-| `rpe` | `ablate/chemgraphormer_ablate_rpe_training_pipeline.py` |
-| `rpe_edge` | `ablate/chemgraphormer_ablate_rpe_edge_training_pipeline.py` |
-| `no_sinusoidal_rpe` | `ablate/chemgraphormer_ablate_no_sinusoidal_rpe_training_pipeline.py` |
-| `no_edge_msg_and_gate` | `ablate/chemgraphormer_ablate_no_edge_msg_and_gate_training_pipeline.py` |
-| `static_edge_flow` | `ablate/chemgraphormer_ablate_static_edge_flow_training_pipeline.py` |
+| `gate_zero` | `utils/chemgraphormer_ablate_gate_zero_training_pipeline.py` |
+| `gate_one` | `utils/chemgraphormer_ablate_gate_one_training_pipeline.py` |
+| `gate_two` | `utils/chemgraphormer_ablate_gate_two_training_pipeline.py` |
+| `edge` | `utils/chemgraphormer_ablate_edge_training_pipeline.py` |
+| `rpe` | `utils/chemgraphormer_ablate_rpe_training_pipeline.py` |
+| `rpe_edge` | `utils/chemgraphormer_ablate_rpe_edge_training_pipeline.py` |
+| `no_sinusoidal_rpe` | `utils/chemgraphormer_ablate_no_sinusoidal_rpe_training_pipeline.py` |
+| `no_edge_msg_and_gate` | `utils/chemgraphormer_ablate_no_edge_msg_and_gate_training_pipeline.py` |
+| `static_edge_flow` | `utils/chemgraphormer_ablate_static_edge_flow_training_pipeline.py` |
 
-> **Important:** For mean pooling ablation variants (Group D), use `ablate/predict_zpve_values_meanpl.py` instead, with `--variant` set to `mean_pool_gate_zero`, `mean_pool_gate_one`, or `mean_pool_gate_two` — all other arguments remain identical:
+> **Important:** For mean pooling ablation variants (Group D), use `utils/predict_zpve_values_meanpl.py` instead, with `--variant` set to `mean_pool_gate_zero`, `mean_pool_gate_one`, or `mean_pool_gate_two` — all other arguments remain identical:
 
 ```bash
-python ablate/predict_zpve_values_meanpl.py \
+python utils/predict_zpve_values_meanpl.py \
     --dataset_path    test_graph_data.pt \
     --checkpoint_path meanpool_gate0/chemgraphormer_mean_pooling_gate_zero_ablation_best_model.pt \
     --variant         mean_pool_gate_zero \
@@ -218,15 +227,15 @@ python ablate/predict_zpve_values_meanpl.py \
 ### Compute convergence efficiency
 
 ```bash
-python ablate/compute_convergence_efficiency.py --log_path gate0/log_gate0.csv
+python utils/compute_convergence_efficiency.py --log_path gate0/log_gate0.csv
 ```
 
 ---
 
-## 8. OGB PCQM4Mv2 training
+## 7. OGB PCQM4Mv2 training
 
-Note: Input SMILES must be a Python DataFrame with a column named "smiles".
-Graph computation for OGB follows the same steps as Section 5, using `utils/graph_generator.py` with `--k 51` (vs. `--k 9` for QM9 ablation).
+Note: Input SMILES must be a Python DataFrame with a column named such as "smiles".
+Graph computation for OGB follows the same steps as Section 4, using `utils/graph_generator.py` with `--k 51`.
 
 ### Run training
 
@@ -278,10 +287,22 @@ python utils/make_gap_value_prediction.py \
 
 > **[All best model weights can be downloaded or retrieved via the google link `https://drive.google.com/drive/folders/1ioIc7KZNwoHA_AD-8ImEc5Tkp2h5bJb8?usp=sharing`]**
 
-| Checkpoint | Task | Val MAE | Parameters |
+## Summary Checkpoints and Performances
+| Checkpoint | Task | Val MAE | Test MAE | Parameters |
 |---|---|---|---|
-| `chemgraphormer_gate_zero_ablation_best_model.pt` | OGB PCQM4Mv2 | 0.1013 eV | 23,643,649 |
-| `chemgraphormer_best_model.pt` | QM9 ZPVE | 8.75 meV | 11,336,673 |
+| `chemgraphormer_best_model.pt` | OGB PCQM4Mv2 | 0.1013 eV | - | 23,643,649 |
+| `chemgraphormer_gate_zero_ablation_best_model.pt` | QM9 ZPVE | 13.33 meV | 14.60 meV | 11,336,673 |
+| `chemgraphormer_gate_one_ablation_best_model.pt` | QM9 ZPVE | 13.88 meV | 14.15 meV | 11,336,673 |
+| `chemgraphormer_gate_two_ablation_best_model.pt` | QM9 ZPVE | 14.15 meV | 14.55 meV | 11,336,673 |
+| `chemgraphormer_edge_ablation_best_model.pt` | QM9 ZPVE | 13.06 meV | 13.48 meV | 11,336,673 |
+| `chemgraphormer_rpe_ablation_best_model.pt` | QM9 ZPVE | 13.33 meV | 13.43 meV | 11,336,673 |
+| `chemgraphormer_rpe_edge_ablation_best_model.pt` | QM9 ZPVE | 14.15 meV | 15.52 meV | 11,336,673 |
+| `chemgraphormer_no_edge_msg_ablation_best_model.pt` | QM9 ZPVE | 14.42 meV | 33.56 meV | 11,336,673 |
+| `chemgraphormer_no_sinusoidal_rpe_ablation_best_model.pt` | QM9 ZPVE | 13.06 meV | 13.89 meV | 11,336,673 |
+| `chemgraphormer_static_edge_flow_ablation_best_model.pt` | QM9 ZPVE | 14.15 meV | 25.99.43 meV | 11,336,673 |
+| `chemgraphormer_mean_pooling_gate_zero_ablation_best_model.pt` | QM9 ZPVE | 8.71 meV | 8.75 meV | 11,336,673 |
+| `chemgraphormer_mean_pooling_gate_one_ablation_best_model.pt` | QM9 ZPVE | 8.98 meV | 9.37 meV | 11,336,673 |
+| `chemgraphormer_mean_pooling_gate_two_ablation_best_model.pt` | QM9 ZPVE | 8.98 meV | 9.49 meV | 11,336,673 |
 
 ---
 
