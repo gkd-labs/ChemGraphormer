@@ -2,8 +2,7 @@
 
 # REQUIRE PYTHON 3.12
 
---find-links https://data.dgl.ai/wheels/torch-2.2/cu118/repo.html
-        
+--find-links https://data.dgl.ai/wheels/torch-2.2/cu118/repo.html      
 torch==2.2.1
 dgl==2.2.1
 torchdata==0.9.0
