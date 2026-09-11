@@ -52,41 +52,6 @@ pip install -r requirements.txt
 pip install -r graph_requirements.txt
 ```
 
----
-
-## 3. Imports Libraries
-
-```python
-import argparse
-import os
-import torch
-import pandas as pd
-from tqdm import tqdm
-from torch_geometric.data import Data
-from sklearn.model_selection import train_test_split
-
-# Graph generator (shared for both QM9 ablation and OGB — set --k accordingly)
-from utils.graph_generator import run_graph_generator
-
-# QM9 ablation training pipelines
-from ablate.chemgraphormer_ablate_edge_training_pipeline import run_edge_ablation
-from ablate.chemgraphormer_ablate_gate_two_training_pipeline import run_gate_init_two_ablation
-from ablate.chemgraphormer_ablate_gate_zero_training_pipeline import run_gate_init_zero_ablation
-from ablate.chemgraphormer_ablate_gate_one_training_pipeline import run_gate_init_one_ablation
-from ablate.chemgraphormer_ablate_rpe_edge_training_pipeline import run_rpe_edge_ablation
-from ablate.chemgraphormer_ablate_rpe_training_pipeline import run_rpe_ablation
-from ablate.chemgraphormer_ablate_no_edge_msg_and_gate_training_pipeline import run_no_edge_msg_and_gate_ablation
-from ablate.chemgraphormer_ablate_no_sinusoidal_rpe_training_pipeline import run_no_sinusoidal_rpe_ablation
-from ablate.chemgraphormer_ablate_use_mean_pooling_gate_one_training_pipeline import run_use_mean_pooling_gate_one_ablation
-from ablate.chemgraphormer_ablate_use_mean_pooling_gate_zero_training_pipeline import run_use_mean_pooling_gate_zero_ablation
-from ablate.chemgraphormer_ablate_use_mean_pooling_gate_two_training_pipeline import run_use_mean_pooling_gate_two_ablation
-from ablate.chemgraphormer_ablate_static_edge_flow_training_pipeline import run_static_edge_flow_ablation
-
-# QM9 prediction and evaluation
-from ablate.predict_zpve_values_attnpl import make_prediction_attnpl
-from ablate.predict_zpve_values_meanpl import make_prediction_meanpl
-from ablate.compute_convergence_efficiency import compute_convergence_training_efficiency
-
 # OGB training and prediction
 from utils.train_chemgraphormer_meanp_reactive import train_with_meanp_gate0_reactive
 from utils.make_gap_value_prediction import run_prediction_meanp
