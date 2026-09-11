@@ -22,6 +22,7 @@ ChemGraphormer is a chemically inductive sparse graph attention Transformer that
 | PaiNN | 1.280 | Yes |
 | SchNet | 1.700 | Yes |
 
+**OGB PCQM4Mv2:** validation MAE of **0.1013 eV** on a single NVIDIA L4 GPU (22.5 GB) trained for 48.2 hours.
 ---
 
 ## 1. Clone Repository
