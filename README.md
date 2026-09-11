@@ -52,11 +52,6 @@ pip install -r requirements.txt
 pip install -r graph_requirements.txt
 ```
 
-# OGB training and prediction
-from utils.train_chemgraphormer_meanp_reactive import train_with_meanp_gate0_reactive
-from utils.make_gap_value_prediction import run_prediction_meanp
-```
-
 ---
 
 ## 4. QM9 Dataset Preparation
