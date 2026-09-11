@@ -22,7 +22,8 @@ ChemGraphormer is a chemically inductive sparse graph attention Transformer that
 | PaiNN | 1.280 | Yes |
 | SchNet | 1.700 | Yes |
 
-**OGB PCQM4Mv2:** validation MAE of **0.1013 eV** on a single NVIDIA L4 GPU (22.5 GB) trained for 48.2 hours.
+**OGB PCQM4Mv2:** validation MAE of **0.1013 eV** on a single NVIDIA L4 GPU (22.5 GB), trained for 48.2 hours.
+
 ---
 
 ## 1. Clone Repository
@@ -44,16 +45,15 @@ This repo uses **three** requirements files for three different environments:
 - **`graph_requirements_cpu_only.txt`** — for graph data computation on a CPU-only machine (exact pinned versions for `torch` + `dgl` + `torchdata`).
 - **`graph_requirements_gpu_avaialble.txt`** — for graph data computation on a machine with a CUDA-capable GPU available.
 
-Both graph-computation requirements files currently **cannot run in Google Colab** — there is no DGL wheel there compatible with any available torch and python version, on either CPU or GPU. Run graph computation in a local terminal or virtual machine instead.
+Both graph-computation requirements files currently **cannot run in Google Colab** — there is no DGL wheel there compatible with any available torch and Python version, on either CPU or GPU. Run graph computation in a local terminal or virtual machine instead.
 
 ```bash
 # RUN ONLY ONE OF THESE TWO DEPENDING ON THE MACHINE YOU ARE USING, WHETHER CPU ONLY OR WITH GPU AVAILABLE
 
-
 # On your graph-computation machine with only CPU available (terminal or virtual machine, not Colab compatible)
 pip install -r graph_requirements_cpu_only.txt
 
-# On your graph-computation machine with available GPU (terminal or virtual machine, not Colab compatible) 
+# On your graph-computation machine with available GPU (terminal or virtual machine, not Colab compatible)
 pip install -r graph_requirements_gpu_avaialble.txt
 ```
 
@@ -85,8 +85,8 @@ Each split CSV has `smiles` and `zero_point_energy` columns, ready for Section 4
 
 ## 4. Graph Data Computation
 
-> **Note:** Run this section in a terminal with `graph_requirements_cpu_only.txt` (CPU-only machine) or `graph_requirements_gpu_avaialble.txt` (GPU-available machine) installed, see Section 2. Graph computation currently **cannot run in Google Colab**, on either CPU or GPU, since there is no DGL wheel there compatible with any available torch and python version. Pass the exact Input SMILES CSVs column named to `--smiles-col` or will default to `smiles`.
-> `utils/graph_generator.py` handles all graph computations. Only set `--k` to the max heavy-atom (node) Laplacian positional encoding (PE) dimension: **k = 9** for QM9 ablation, **k = 51** for OGB pretraining.
+> **Note:** Run this section in a terminal with `graph_requirements_cpu_only.txt` (CPU-only machine) or `graph_requirements_gpu_avaialble.txt` (GPU-available machine) installed — see Section 2. Graph computation currently **cannot run in Google Colab**, on either CPU or GPU, since there is no DGL wheel there compatible with any available torch and Python version. Pass your input CSV's SMILES column name to `--smiles-col`, or it defaults to `smiles`.
+> `utils/graph_generator.py` handles all graph computation. Only set `--k` to the max heavy-atom (node) Laplacian positional encoding (PE) dimension: **k = 9** for QM9 ablation, **k = 51** for OGB pretraining.
 
 ### Compute graphs
 
@@ -151,25 +151,25 @@ The example below runs **Gate Init Zero** (Group A). To run any other condition,
 
 ```bash
 python utils/chemgraphormer_ablate_gate_zero_training_pipeline.py \
-    --train_path              train_graphs.pt \
-    --valid_path               valid_graphs.pt \
-    --ckpt_dir                 gate0/ \
-    --epoch_log_path           gate0/log_gate0.csv \
-    --num_classes               1 \
-    --d_model                   512 \
-    --d_ff                      1024 \
-    --num_freqs                 8 \
-    --n_heads                   8 \
-    --num_layers                6 \
-    --epochs                    200 \
-    --warmup_epochs              10 \
-    --batch_size                128 \
-    --lr                        8e-5 \
-    --min_lr                    1e-6 \
-    --weight_decay               5e-4 \
-    --early_stopping_patience    40 \
-    --dropout                   0.15 \
-    --device                    cuda
+    --train_path               train_graphs.pt \
+    --valid_path                valid_graphs.pt \
+    --ckpt_dir                  gate0/ \
+    --epoch_log_path            gate0/log_gate0.csv \
+    --num_classes                1 \
+    --d_model                    512 \
+    --d_ff                       1024 \
+    --num_freqs                  8 \
+    --n_heads                    8 \
+    --num_layers                 6 \
+    --epochs                     200 \
+    --warmup_epochs               10 \
+    --batch_size                 128 \
+    --lr                         8e-5 \
+    --min_lr                     1e-6 \
+    --weight_decay                5e-4 \
+    --early_stopping_patience     40 \
+    --dropout                    0.15 \
+    --device                     cuda
 ```
 
 > `--device` accepts `cuda` or `cpu` — if `cuda` is requested but unavailable, the script falls back to CPU automatically with a warning.
@@ -235,7 +235,7 @@ python utils/compute_convergence_efficiency.py --log_path gate0/log_gate0.csv
 
 ## 7. OGB PCQM4Mv2 training
 
-Note: Input SMILES must be a Python DataFrame with a column named such as "smiles".
+Note: Input SMILES CSVs need a column of SMILES strings — `--smiles-col` defaults to `smiles`, but any column name works if you pass it explicitly.
 Graph computation for OGB follows the same steps as Section 4, using `utils/graph_generator.py` with `--k 51`.
 
 ### Run training
@@ -288,9 +288,10 @@ python utils/make_gap_value_prediction.py \
 
 > **[All best model weights can be downloaded or retrieved via the google link `https://drive.google.com/drive/folders/1ioIc7KZNwoHA_AD-8ImEc5Tkp2h5bJb8?usp=sharing`]**
 
-## Summary Checkpoints and Performances
+### Summary: Checkpoints and Performance
+
 | Checkpoint | Task | Val MAE | Test MAE | Parameters |
-|---|---|---|---|
+|---|---|---|---|---|
 | `chemgraphormer_best_model.pt` | OGB PCQM4Mv2 | 0.1013 eV | - | 23,643,649 |
 | `chemgraphormer_gate_zero_ablation_best_model.pt` | QM9 ZPVE | 13.33 meV | 14.60 meV | 11,336,673 |
 | `chemgraphormer_gate_one_ablation_best_model.pt` | QM9 ZPVE | 13.88 meV | 14.15 meV | 11,336,673 |
@@ -300,7 +301,7 @@ python utils/make_gap_value_prediction.py \
 | `chemgraphormer_rpe_edge_ablation_best_model.pt` | QM9 ZPVE | 14.15 meV | 15.52 meV | 11,336,673 |
 | `chemgraphormer_no_edge_msg_ablation_best_model.pt` | QM9 ZPVE | 14.42 meV | 33.56 meV | 11,336,673 |
 | `chemgraphormer_no_sinusoidal_rpe_ablation_best_model.pt` | QM9 ZPVE | 13.06 meV | 13.89 meV | 11,336,673 |
-| `chemgraphormer_static_edge_flow_ablation_best_model.pt` | QM9 ZPVE | 14.15 meV | 25.99.43 meV | 11,336,673 |
+| `chemgraphormer_static_edge_flow_ablation_best_model.pt` | QM9 ZPVE | 14.15 meV | **[NEEDS FIX — see note]** | 11,336,673 |
 | `chemgraphormer_mean_pooling_gate_zero_ablation_best_model.pt` | QM9 ZPVE | 8.71 meV | 8.75 meV | 11,336,673 |
 | `chemgraphormer_mean_pooling_gate_one_ablation_best_model.pt` | QM9 ZPVE | 8.98 meV | 9.37 meV | 11,336,673 |
 | `chemgraphormer_mean_pooling_gate_two_ablation_best_model.pt` | QM9 ZPVE | 8.98 meV | 9.49 meV | 11,336,673 |
