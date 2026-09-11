@@ -1,0 +1,17 @@
+# NOTE THAT THIS REQUIREMENT CAN NOT RUN IN GOOGLE COLAB ENVIRONMENT BECAUSE THERE IS CURRENTLY NO TORCH COMPATIBLE VERSIONS IN THERE FOR DGL
+
+# REQUIRE PYTHON 3.12
+
+--find-links https://data.dgl.ai/wheels/torch-2.2/cu118/repo.html
+        
+torch==2.2.1
+dgl==2.2.1
+torchdata==0.9.0
+torch-geometric==2.6.1
+numpy==1.26.4
+rdkit==2026.3.2
+scikit-learn==1.6.1
+tqdm==4.67.3
+pandas==2.2.2
+ogb==1.3.6
+graphein
