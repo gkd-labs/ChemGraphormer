@@ -2,9 +2,7 @@
 
 # REQUIRE PYTHON 3.12
 
-# --find-links https://data.dgl.ai/wheels/torch-2.2/cu118/repo.html      THIS IS FOR CUDA VERSION 11.8 USE, CHANGE cu118 to the compatible cuda version if available
-
---find-links https://data.pyg.org/whl/torch-2.2.1+cpu.html        # THIS IS FOR CPU ENABLE ONLY MACHINES.
+--find-links https://data.pyg.org/whl/torch-2.2.1+cpu.html        
 torch==2.2.1
 dgl==2.2.1
 torchdata==0.9.0
