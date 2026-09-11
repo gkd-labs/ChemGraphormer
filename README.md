@@ -49,7 +49,7 @@ Both graph-computation requirements files currently **cannot run in Google Colab
 # RUN ONLY ONE OF THESE TWO DEPENDING ON THE MACHINE YOU ARE USING, WHETHER CPU ONLY OR WITH GPU AVAILABLE
 
 
-# On your graph-computation machine with only CPU available (terminal, not Colab compatible)
+# On your graph-computation machine with only CPU available (terminal or virtual machine, not Colab compatible)
 pip install -r graph_requirements_cpu_only.txt
 
 # On your graph-computation machine with available GPU (terminal or virtual machine, not Colab compatible) 
