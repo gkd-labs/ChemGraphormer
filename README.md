@@ -66,7 +66,7 @@ pip install -r requirements.txt
 
 ## 3. QM9 Dataset Preparation
 
-Download QM9 from HuggingFace, remove uncharacterized molecules, and split into the standard benchmark splits (adopted from DimeNet — 110,000 : 10,000 : 10,831) in one step:
+Download QM9 from HuggingFace, remove uncharacterized molecules, and split into the standard benchmark splits (adopted from DimeNet —> 110,000 : 10,000 : 10,831) in one step:
 
 ```bash
 python utils/load_qm9_130831.py
@@ -74,10 +74,10 @@ python utils/load_qm9_130831.py
 
 This saves four CSV files to the working directory:
 
-- `qm9_130831.csv` — full cleaned dataset (130,831 molecules)
-- `qm9_train.csv` — 110,000 molecules
-- `qm9_val.csv` — 10,000 molecules
-- `qm9_test.csv` — 10,831 molecules
+- `qm9_130831.csv` —> full cleaned dataset (130,831 molecules)
+- `qm9_train.csv` —> 110,000 molecules
+- `qm9_val.csv` —> 10,000 molecules
+- `qm9_test.csv` —> 10,831 molecules
 
 Each split CSV has `smiles` and `zero_point_energy` columns, ready for Section 4.
 
