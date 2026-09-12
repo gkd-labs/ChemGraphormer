@@ -200,7 +200,7 @@ python utils/predict_zpve_values_attnpl.py \
 
 This prints the dataset size and, if the dataset has labels, the test MAE, and saves predictions to `predictions/test_predictions.csv`.
 
-`--variant` picks the correct model architecture for the checkpoint — it must match how the checkpoint was trained:
+`--variant` picks the correct model architecture for the checkpoint. It must match how the checkpoint was trained:
 
 | `--variant` | Trained by |
 |---|---|
