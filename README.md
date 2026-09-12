@@ -172,7 +172,7 @@ python utils/chemgraphormer_ablate_gate_zero_training_pipeline.py \
     --device                     cuda
 ```
 
-> `--device` accepts `cuda` or `cpu` — if `cuda` is requested but unavailable, the script falls back to CPU automatically with a warning.
+> `--device` accepts `cuda` or `cpu` if `cuda` is requested but unavailable, the script falls back to CPU automatically with a warning.
 
 ---
 
@@ -214,7 +214,7 @@ This prints the dataset size and, if the dataset has labels, the test MAE, and s
 | `no_edge_msg_and_gate` | `utils/chemgraphormer_ablate_no_edge_msg_and_gate_training_pipeline.py` |
 | `static_edge_flow` | `utils/chemgraphormer_ablate_static_edge_flow_training_pipeline.py` |
 
-> **Important:** For mean pooling ablation variants (Group D), use `utils/predict_zpve_values_meanpl.py` instead, with `--variant` set to `mean_pool_gate_zero`, `mean_pool_gate_one`, or `mean_pool_gate_two` — all other arguments remain identical:
+> **Important:** For mean pooling ablation variants (Group D), use `utils/predict_zpve_values_meanpl.py` instead, with `--variant` set to `mean_pool_gate_zero`, `mean_pool_gate_one`, or `mean_pool_gate_two`. All other arguments remain identical:
 
 ```bash
 python utils/predict_zpve_values_meanpl.py \
@@ -235,7 +235,7 @@ python utils/compute_convergence_efficiency.py --log_path gate0/log_gate0.csv
 
 ## 7. OGB PCQM4Mv2 training
 
-Note: Input SMILES CSVs need a column of SMILES strings — `--smiles-col` defaults to `smiles`, but any column name works if you pass it explicitly.
+Note: Input SMILES CSVs need a column of SMILES strings whose name must be explicitly passed to `--smiles-col` or will defaults to `smiles` column name when not provided explicitly.
 Graph computation for OGB follows the same steps as Section 4, using `utils/graph_generator.py` with `--k 51`.
 
 ### Run training
