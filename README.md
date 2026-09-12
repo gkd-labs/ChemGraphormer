@@ -41,11 +41,11 @@ cd ChemGraphormer
 
 This repo uses **three** requirements files for three different environments:
 
-- **`requirements.txt`** — for training (GPU/CUDA-enabled machine).
-- **`graph_requirements_cpu_only.txt`** — for graph data computation on a CPU-only machine (exact pinned versions for `torch` + `dgl` + `torchdata`).
-- **`graph_requirements_gpu_avaialble.txt`** — for graph data computation on a machine with a CUDA-capable GPU available.
+- **`requirements.txt`**: for training (GPU/CUDA-enabled machine).
+- **`graph_requirements_cpu_only.txt`**: for graph data computation on a CPU-only machine (exact pinned versions for `torch` + `dgl` + `torchdata`).
+- **`graph_requirements_gpu_avaialble.txt`**: for graph data computation on a machine with a CUDA-capable GPU available.
 
-Both graph-computation requirements files currently **cannot run in Google Colab** — there is no DGL wheel there compatible with any available torch and Python version, on either CPU or GPU. Run graph computation in a local terminal or virtual machine instead.
+Both graph-computation requirements files currently **cannot run in Google Colab**; there is no DGL wheel there compatible with any available torch and Python version, on either CPU or GPU. Run graph computation in a local terminal or virtual machine instead.
 
 ```bash
 # RUN ONLY ONE OF THESE TWO DEPENDING ON THE MACHINE YOU ARE USING, WHETHER CPU ONLY OR WITH GPU AVAILABLE
@@ -85,7 +85,7 @@ Each split CSV has `smiles` and `zero_point_energy` columns, ready for Section 4
 
 ## 4. Graph Data Computation
 
-> **Note:** Run this section in a terminal with `graph_requirements_cpu_only.txt` (CPU-only machine) or `graph_requirements_gpu_avaialble.txt` (GPU-available machine) installed — see Section 2. Graph computation currently **cannot run in Google Colab**, on either CPU or GPU, since there is no DGL wheel there compatible with any available torch and Python version. Pass your input CSV's SMILES column name to `--smiles-col`, or it defaults to `smiles`.
+> **Note:** Run this section in a terminal with `graph_requirements_cpu_only.txt` (CPU-only machine) or `graph_requirements_gpu_avaialble.txt` (GPU-available machine) installed, see Section 2. Graph computation currently **cannot run in Google Colab**, on either CPU or GPU, since there is no DGL wheel there compatible with any available torch and Python version. Pass your input CSV's SMILES column name to `--smiles-col`, or it defaults to `smiles`.
 > `utils/graph_generator.py` handles all graph computation. Only set `--k` to the max heavy-atom (node) Laplacian positional encoding (PE) dimension: **k = 9** for QM9 ablation, **k = 51** for OGB pretraining.
 
 ### Compute graphs
