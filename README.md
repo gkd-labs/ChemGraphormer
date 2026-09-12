@@ -69,7 +69,7 @@ pip install -r requirements.txt
 Download QM9 from HuggingFace, remove uncharacterized molecules, and split into the standard benchmark splits (adopted from DimeNet — 110,000 : 10,000 : 10,831) in one step:
 
 ```bash
-python load_qm9_130831.py
+python utils/load_qm9_130831.py
 ```
 
 This saves four CSV files to the working directory:
