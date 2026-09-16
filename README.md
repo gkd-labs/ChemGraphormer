@@ -311,15 +311,7 @@ python utils/make_gap_value_prediction.py \
 ## Citation
 
 ```bibtex
-@article{chemgraphormer2026,
-  title   = {},
-  author  = {},
-  journal = {},
-  volume  = {},
-  pages   = {},
-  year    = {2026},
-  doi     = {},
-}
+This work is yet to be published.
 ```
 
 ---
