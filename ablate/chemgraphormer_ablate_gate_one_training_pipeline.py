@@ -13,7 +13,6 @@ from tqdm import tqdm
 
 from model.chemgraphormer_ablate_gate_init_one import ChemGraphormerClassifier
 
-
 def parse_args():
     parser = argparse.ArgumentParser(description="Gate initialization at 1 ablation training for ChemGraphormer with warmup + cosine LR decay.")
     parser.add_argument("--train_path",              type=str,   required=True,  help="Path to preprocessed training dataset (.pt)")
