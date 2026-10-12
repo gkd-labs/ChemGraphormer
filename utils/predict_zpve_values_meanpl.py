@@ -8,6 +8,8 @@ import torch.nn.functional as F
 from torch_geometric.loader import DataLoader
 from tqdm import tqdm
 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 # Mean-pooling ablation variants -> model module (each defines a differently-structured
 # ChemGraphormerClassifier). Use --variant to pick the one matching your checkpoint.
 VARIANT_MODEL_MAP = {
