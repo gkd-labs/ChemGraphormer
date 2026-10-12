@@ -2,6 +2,8 @@ import os
 import sys
 import csv
 import time
+import numpy
+import random
 import argparse
 import math
 import torch
@@ -33,9 +35,20 @@ def parse_args():
     parser.add_argument("--d_ff",                   type=int,   default=1536,   help="Feed-forward hidden dimension (default: 1536)")
     parser.add_argument("--num_freqs",              type=int,   default=16,     help="Number of sinusoidal RPE frequencies (default: 16)")
     parser.add_argument("--dropout",                type=float, default=0.2,    help="Dropout rate (default: 0.2)")
-
+    parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility (default: 42)")
     return parser.parse_args()
 
+def set_seed(seed):
+    """
+    Seed all RNGs used in training for reproducibility.
+
+    Args:
+        seed: Integer seed value
+    """
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)    
 
 def move_batch_to_device(batch, device):
     """
@@ -177,12 +190,16 @@ def run_no_sinusoidal_rpe_ablation(args):
         args: Parsed argparse.Namespace containing all training hyperparameters
     """
     os.makedirs(args.ckpt_dir, exist_ok=True)
+    set_seed(args.seed)
 
     print("Loading datasets...")
     train_dataset = torch.load(args.train_path, map_location="cpu", weights_only=False)  # custom PyG dataset objects require full unpickling
     valid_dataset = torch.load(args.valid_path, map_location="cpu", weights_only=False)  # custom PyG dataset objects require full unpickling
 
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,  pin_memory=True)
+    g = torch.Generator()
+    g.manual_seed(args.seed)
+    
+    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,  pin_memory=True, generator=g)
     valid_loader = DataLoader(valid_dataset, batch_size=args.batch_size, shuffle=False, pin_memory=True)
 
     sample_graph = train_dataset[0]
