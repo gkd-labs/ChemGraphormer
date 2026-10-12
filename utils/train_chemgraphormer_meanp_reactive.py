@@ -2,6 +2,8 @@ import os
 import sys
 import csv
 import time
+import numpy as np
+import random
 import argparse
 import math
 import torch
@@ -10,6 +12,7 @@ from torch_geometric.loader import DataLoader
 from ogb.lsc import PCQM4Mv2Evaluator
 from tqdm import tqdm
 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from model.chemgraphormer_meanp_gate0 import ChemGraphormerClassifier
 
 """
@@ -44,9 +47,20 @@ def parse_args():
     parser.add_argument("--d_ff", type=int, default=1536)
     parser.add_argument("--num_freqs", type=int, default=16)
     parser.add_argument("--dropout", type=float, default=0.2)
-
+    parser.add_argument("--seed", type=int, default=42)
     return parser.parse_args()
 
+def set_seed(seed):
+    """
+    Seed all RNGs used in training for reproducibility.
+
+    Args:
+        seed: Integer seed value
+    """
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
 
 def move_batch_to_device(batch, device):
     """Move batch tensors to device."""
@@ -56,7 +70,6 @@ def move_batch_to_device(batch, device):
             if isinstance(tensor, torch.Tensor):
                 setattr(batch, attr, tensor.to(device))
     return batch
-
 
 def count_parameters(model):
     """Print model parameter counts."""
@@ -141,6 +154,7 @@ def get_all_lrs(optimizer):
 def train_with_meanp_gate0_reactive(args):
     """Main training loop."""
     os.makedirs(args.ckpt_dir, exist_ok=True)
+    set_seed(args.seed)
 
     print("Loading datasets...")
     train_dataset = torch.load(args.train_path, map_location="cpu", weights_only=False)
@@ -211,7 +225,10 @@ def train_with_meanp_gate0_reactive(args):
         if new_batch_size != current_batch_size or lr_multiplier != current_lr_multiplier or epoch == start_epoch:
             current_batch_size, current_lr_multiplier = new_batch_size, lr_multiplier
 
-            train_loader = DataLoader(train_dataset, batch_size=new_batch_size, shuffle=True, pin_memory=True)
+            g = torch.Generator()
+            g.manual_seed(args.seed)
+            
+            train_loader = DataLoader(train_dataset, batch_size=new_batch_size, shuffle=True, pin_memory=True, generator=g)
             valid_loader = DataLoader(valid_dataset, batch_size=new_batch_size, shuffle=False, pin_memory=True)
 
             # Always build fresh optimizer and scheduler at correct phase LR
