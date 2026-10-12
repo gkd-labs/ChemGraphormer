@@ -26,7 +26,6 @@ def load_model_class(variant):
     module = importlib.import_module(VARIANT_MODEL_MAP[variant])
     return module.ChemGraphormerClassifier
 
-
 def load_model_from_checkpoint(checkpoint_path, model_params, device, model_class):
     """Initializes architecture with custom params and loads weights."""
     model = model_class(**model_params).to(device)
