@@ -36,7 +36,6 @@ def parse_args():
     parser.add_argument("--num_freqs",               type=int,   default=16,     help="Number of sinusoidal RPE frequencies (default: 16)")
     parser.add_argument("--dropout",                 type=float, default=0.2,    help="Dropout rate (default: 0.2)")
     parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility (default: 42)")
-
     return parser.parse_args()
 
 def set_seed(seed):
