@@ -136,21 +136,21 @@ The example below runs **Gate Init Zero** (Group A). To run any other condition,
 
 | Condition | Script |
 |---|---|
-| Gate b=0 (full model) | `utils/chemgraphormer_ablate_gate_zero_training_pipeline.py` |
-| Gate b=1 (full model) | `utils/chemgraphormer_ablate_gate_one_training_pipeline.py` |
-| Gate b=2 (full model) | `utils/chemgraphormer_ablate_gate_two_training_pipeline.py` |
-| No edge bias | `utils/chemgraphormer_ablate_edge_training_pipeline.py` |
-| No ΔRPE bias | `utils/chemgraphormer_ablate_rpe_training_pipeline.py` |
-| No edge bias + no ΔRPE | `utils/chemgraphormer_ablate_rpe_edge_training_pipeline.py` |
-| No sinusoidal RPE | `utils/chemgraphormer_ablate_no_sinusoidal_rpe_training_pipeline.py` |
-| No edge msg + no gate | `utils/chemgraphormer_ablate_no_edge_msg_and_gate_training_pipeline.py` |
-| Static edge flow (no gate) | `utils/chemgraphormer_ablate_static_edge_flow_training_pipeline.py` |
-| Mean pool + gate b=0 | `utils/chemgraphormer_ablate_use_mean_pooling_gate_zero_training_pipeline.py` |
-| Mean pool + gate b=1 | `utils/chemgraphormer_ablate_use_mean_pooling_gate_one_training_pipeline.py` |
-| Mean pool + gate b=2 | `utils/chemgraphormer_ablate_use_mean_pooling_gate_two_training_pipeline.py` |
+| Gate b=0 (full model) | `ablate/chemgraphormer_ablate_gate_zero_training_pipeline.py` |
+| Gate b=1 (full model) | `ablate/chemgraphormer_ablate_gate_one_training_pipeline.py` |
+| Gate b=2 (full model) | `ablate/chemgraphormer_ablate_gate_two_training_pipeline.py` |
+| No edge bias | `ablate/chemgraphormer_ablate_edge_training_pipeline.py` |
+| No ΔRPE bias | `ablate/chemgraphormer_ablate_rpe_training_pipeline.py` |
+| No edge bias + no ΔRPE | `ablate/chemgraphormer_ablate_rpe_edge_training_pipeline.py` |
+| No sinusoidal RPE | `ablate/chemgraphormer_ablate_no_sinusoidal_rpe_training_pipeline.py` |
+| No edge msg + no gate | `ablate/chemgraphormer_ablate_no_edge_msg_and_gate_training_pipeline.py` |
+| Static edge flow (no gate) | `ablate/chemgraphormer_ablate_static_edge_flow_training_pipeline.py` |
+| Mean pool + gate b=0 | `ablate/chemgraphormer_ablate_use_mean_pooling_gate_zero_training_pipeline.py` |
+| Mean pool + gate b=1 | `ablate/chemgraphormer_ablate_use_mean_pooling_gate_one_training_pipeline.py` |
+| Mean pool + gate b=2 | `ablate/chemgraphormer_ablate_use_mean_pooling_gate_two_training_pipeline.py` |
 
 ```bash
-python utils/chemgraphormer_ablate_gate_zero_training_pipeline.py \
+python ablate/chemgraphormer_ablate_gate_zero_training_pipeline.py \
     --train_path               train_graphs.pt \
     --valid_path                valid_graphs.pt \
     --ckpt_dir                  gate0/ \
