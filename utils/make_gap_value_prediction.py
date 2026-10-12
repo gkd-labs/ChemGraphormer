@@ -9,6 +9,7 @@ from torch_geometric.loader import DataLoader
 from ogb.lsc import PCQM4Mv2Evaluator
 from tqdm import tqdm
 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from model.chemgraphormer_meanp_gate0 import ChemGraphormerClassifier
 
 #-----
