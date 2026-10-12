@@ -13,7 +13,6 @@ from tqdm import tqdm
 
 from model.chemgraphormer_ablate_use_mean_pooling_gate_zero import ChemGraphormerClassifier
 
-
 def parse_args():
     parser = argparse.ArgumentParser(description="Use Mean Pooling ablation training for ChemGraphormer with warmup + cosine LR decay.")
     parser.add_argument("--train_path",             type=str,   required=True,  help="Path to preprocessed training dataset (.pt)")
