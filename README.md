@@ -237,7 +237,12 @@ python utils/compute_convergence_efficiency.py --log_path gate0/log_gate0.csv
 
 ## 7. OGB PCQM4Mv2 training
 
-Note: Input SMILES CSVs need a column of SMILES strings whose name must be explicitly passed to `--smiles-col` or will defaults to `smiles` column name when not provided explicitly.
+### Download all OGB PCQM4Mv2 dataset splits
+```bash
+python utils/pred_download_pcqm4mv2.py
+```
+
+>**Note**: Input SMILES CSVs have SMILES strings column name as `smiles` and their corresponding gap values column as `gap_val`. These column name must be correctly specified in the graph computation method. test-dev and test-challenge splits have hidden labels, so their gap_val column will be NaN. That’s expected.
 Graph computation for OGB follows the same steps as Section 4, using `utils/graph_generator.py` with `--k 51`.
 
 ### Run training
