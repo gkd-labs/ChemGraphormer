@@ -169,10 +169,12 @@ python ablate/chemgraphormer_ablate_gate_zero_training_pipeline.py \
     --weight_decay                5e-4 \
     --early_stopping_patience     40 \
     --dropout                    0.15 \
-    --device                     cuda
+    --device                     cuda \
+    --seed                        42
 ```
 
 > `--device` accepts `cuda` or `cpu` if `cuda` is requested but unavailable, the script falls back to CPU automatically with a warning.
+> > `--seed` sets the seed for random weights initialization and training dataloader shuffling. Set preferred for reproducibility, the script defaults to 42 when this flag is not set explicitly.
 
 ---
 
@@ -268,7 +270,8 @@ python utils/train_chemgraphormer_meanp_reactive.py \
     --n_heads          16 \
     --num_layers       8 \
     --num_freqs        16 \
-    --dropout          0.15
+    --dropout          0.15 \
+    --seed              42
 ```
 
 ### Make predictions
