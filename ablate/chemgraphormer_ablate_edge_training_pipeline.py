@@ -200,7 +200,7 @@ def run_edge_ablation(args):
     g = torch.Generator()
     g.manual_seed(args.seed)
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,  pin_memory=True, generator=g)
-    valid_loader = DataLoader(valid_dataset, batch_size=args.batch_size, shuffle=False, pin_memory=True, generator=g)
+    valid_loader = DataLoader(valid_dataset, batch_size=args.batch_size, shuffle=False, pin_memory=True)
 
     sample_graph = train_dataset[0]
     model = ChemGraphormerClassifier(
