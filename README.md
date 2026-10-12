@@ -174,7 +174,7 @@ python ablate/chemgraphormer_ablate_gate_zero_training_pipeline.py \
 ```
 
 > `--device` accepts `cuda` or `cpu` if `cuda` is requested but unavailable, the script falls back to CPU automatically with a warning.
-> > `--seed` sets the seed for random weights initialization and training dataloader shuffling. Set preferred for reproducibility, the script defaults to 42 when this flag is not set explicitly.
+> `--seed` sets the seed for random weights initialization and training dataloader shuffling. Set preferred seed for reproducibility, the script defaults to 42 when this flag is not set explicitly.
 
 ---
 
@@ -206,15 +206,15 @@ This prints the dataset size and, if the dataset has labels, the test MAE, and s
 
 | `--variant` | Trained by |
 |---|---|
-| `gate_zero` | `utils/chemgraphormer_ablate_gate_zero_training_pipeline.py` |
-| `gate_one` | `utils/chemgraphormer_ablate_gate_one_training_pipeline.py` |
-| `gate_two` | `utils/chemgraphormer_ablate_gate_two_training_pipeline.py` |
-| `edge` | `utils/chemgraphormer_ablate_edge_training_pipeline.py` |
-| `rpe` | `utils/chemgraphormer_ablate_rpe_training_pipeline.py` |
-| `rpe_edge` | `utils/chemgraphormer_ablate_rpe_edge_training_pipeline.py` |
-| `no_sinusoidal_rpe` | `utils/chemgraphormer_ablate_no_sinusoidal_rpe_training_pipeline.py` |
-| `no_edge_msg_and_gate` | `utils/chemgraphormer_ablate_no_edge_msg_and_gate_training_pipeline.py` |
-| `static_edge_flow` | `utils/chemgraphormer_ablate_static_edge_flow_training_pipeline.py` |
+| `gate_zero` | `ablate/chemgraphormer_ablate_gate_zero_training_pipeline.py` |
+| `gate_one` | `ablate/chemgraphormer_ablate_gate_one_training_pipeline.py` |
+| `gate_two` | `ablate/chemgraphormer_ablate_gate_two_training_pipeline.py` |
+| `edge` | `ablate/chemgraphormer_ablate_edge_training_pipeline.py` |
+| `rpe` | `ablate/chemgraphormer_ablate_rpe_training_pipeline.py` |
+| `rpe_edge` | `ablate/chemgraphormer_ablate_rpe_edge_training_pipeline.py` |
+| `no_sinusoidal_rpe` | `ablate/chemgraphormer_ablate_no_sinusoidal_rpe_training_pipeline.py` |
+| `no_edge_msg_and_gate` | `ablate/chemgraphormer_ablate_no_edge_msg_and_gate_training_pipeline.py` |
+| `static_edge_flow` | `ablate/chemgraphormer_ablate_static_edge_flow_training_pipeline.py` |
 
 > **Important:** For mean pooling ablation variants (Group D), use `utils/predict_zpve_values_meanpl.py` instead, with `--variant` set to `mean_pool_gate_zero`, `mean_pool_gate_one`, or `mean_pool_gate_two`. All other arguments remain identical:
 
