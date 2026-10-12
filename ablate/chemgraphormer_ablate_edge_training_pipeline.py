@@ -2,7 +2,7 @@ import os
 import sys
 import csv
 import time
-import numpy
+import numpy as np
 import random
 import argparse
 import math
@@ -11,6 +11,7 @@ import torch.nn.functional as F
 from torch_geometric.loader import DataLoader
 from tqdm import tqdm
 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from model.chemgraphormer_ablate_edge import ChemGraphormerClassifier
 
 
