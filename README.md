@@ -58,7 +58,9 @@ pip install -r graph_requirements_gpu_avaialble.txt
 ```
 
 ```bash
-# On your training machine (GPU), install requirements.txt and run the torch scatter shim - This is Colab compatible
+# On your training machine (GPU supported)
+# install requirements.txt and run the torch scatter shim
+# This is Google Colab compatible
 
 pip install -r requirements.txt
 
