@@ -50,13 +50,30 @@ def set_seed(seed):
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
+    
+def move_batch_to_device(batch, device):
+    """
+    Move all relevant attributes of a PyG batch to the specified device.
+
+    Args:
+        batch: PyG batch object containing x, lap_pos, edge_index, edge_attr, batch, y
+        device: Target device ("cuda" or "cpu")
+
+    Returns:
+        batch: PyG batch with all tensor attributes moved to device
+    """
+    for attr in ['x', 'lap_pos', 'edge_index', 'edge_attr', 'batch', 'y']:
+        if hasattr(batch, attr):
+            tensor = getattr(batch, attr)
+            if isinstance(tensor, torch.Tensor):
+                setattr(batch, attr, tensor.to(device))
+    retur
 
 def random_sign_flip(lap_pos, batch_idx, num_graphs):
     """Flip each eigenvector independently, per graph."""
     signs = torch.randint(0, 2, (num_graphs, lap_pos.size(1)),
                           device=lap_pos.device).to(lap_pos.dtype) * 2 - 1
     return lap_pos * signs[batch_idx]
-
 
 def count_parameters(model):
     """
@@ -68,7 +85,6 @@ def count_parameters(model):
     total = sum(p.numel() for p in model.parameters())
     trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"Model Parameters: {total:,} total | {trainable:,} trainable")
-
 
 def build_scheduler(optimizer, epochs, warmup_epochs, min_lr):
     """
