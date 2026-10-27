@@ -67,7 +67,7 @@ def move_batch_to_device(batch, device):
             tensor = getattr(batch, attr)
             if isinstance(tensor, torch.Tensor):
                 setattr(batch, attr, tensor.to(device))
-    retur
+    return batch
 
 def random_sign_flip(lap_pos, batch_idx, num_graphs):
     """Flip each eigenvector independently, per graph."""
