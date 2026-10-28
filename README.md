@@ -175,7 +175,7 @@ python ablate/chemgraphormer_ablate_gate_zero_training_pipeline.py \
     --early_stopping_patience     40 \
     --dropout                    0.15 \
     --device                     cuda \
-    --seed                        42
+    --seed                        123
 ```
 
 > `--device` accepts `cuda` or `cpu` if `cuda` is requested but unavailable, the script falls back to CPU automatically with a warning.
@@ -281,7 +281,7 @@ python utils/train_chemgraphormer_meanp_reactive.py \
     --num_layers       8 \
     --num_freqs        16 \
     --dropout          0.15 \
-    --seed              42
+    --seed              123
 ```
 
 ### Make predictions
