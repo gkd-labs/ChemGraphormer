@@ -64,7 +64,7 @@ pip install -r graph_requirements_gpu_avaialble.txt
 
 pip install -r requirements.txt
 
-python utils/torch_scatter_shim
+python utils/torch_scatter_shim.py
 ```
 
 ---
