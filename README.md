@@ -93,7 +93,7 @@ Each split CSV has `smiles` and `zero_point_energy` columns, ready for Section 4
 > **Note:** Run this section in a terminal with `graph_requirements_cpu_only.txt` (CPU-only machine) or `graph_requirements_gpu_avaialble.txt` (GPU-available machine) installed, see Section 2. Graph computation currently **cannot run in Google Colab**, on either CPU or GPU, since there is no DGL wheel there compatible with any available torch and Python version. Pass your input CSV's SMILES column name to `--smiles-col`, or it defaults to `smiles`.
 > `utils/run_sharded.py` handles all graph computation. Only set `--k` to the max heavy-atom (node) Laplacian positional encoding (PE) dimension: **k = 9** for QM9 ablation, **k = 51** for OGB pretraining.
 
-### Compute graphs
+### Compute Graphs
 
 ```bash
 # QM9 ablation (k = 9)
@@ -113,7 +113,7 @@ python utils/run_sharded.py \
 
 Repeat for each split (`--input qm9_val.csv`, `qm9_test.csv`, etc.), pointing `--out-dir` to a distinct `directory` per split.
 
-### Attach labels
+### Attach Labels
 
 ```bash
 # QM9 ablation
@@ -131,7 +131,21 @@ python utils/add_labels_sharded.py \
     --out-dir train_graphs_data_ogb_with_labels
 ```
 
-This saves a list of `torch_geometric.data.Data` objects (`x`, `edge_index`, `edge_attr`, `y`, `lap_pos`) to the `--out-dir` path, ready for Section 5/7 training. Repeat for each split.
+### Combine All Graph Data Into One
+
+```bash
+# QM9 ablation
+python utils/combine_shards.py \
+    --labeled-dir train_graphs_data_qm9_with_labels \
+    --output final_train_graphs_qm9.pt
+
+# OGB PCQM4Mv2
+python utils/combine_shards.py \
+    --labeled-dir train_graphs_data_ogb_with_labels \
+    --output final_train_graphs_ogb.pt
+```
+
+This saves a list of `torch_geometric.data.Data` objects (`x`, `edge_index`, `edge_attr`, `y`, `lap_pos`) to the `--output` file, ready for Section 5/7 training. Repeat for each split.
 
 ---
 
