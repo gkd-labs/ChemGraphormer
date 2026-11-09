@@ -101,7 +101,6 @@ python utils/run_sharded.py \
     --input qm9_train.csv \
     --smiles-col smiles \
     --k 9 \
-    --prefix train \
     --out-dir train_graphs_data_qm9
 
 # OGB PCQM4Mv2 (k = 51)
@@ -109,7 +108,6 @@ python utils/run_sharded.py \
     --input train_dataset.csv \
     --smiles-col smiles \
     --k 51 \
-    --prefix train \
     --out-dir train_graphs_data_ogb
 ```
 
@@ -123,15 +121,13 @@ python utils/add_labels_sharded.py \
     --shards-dir train_graphs_data_qm9 \
     --labels-csv qm9_train.csv \
     --label-col zero_point_energy \
-    --prefix train \
     --out-dir train_graphs_data_ogb_with_labels
 
 # OGB PCQM4Mv2
-python utils/add_graph_labels.py \
+python utils/add_labels_sharded.py \
     --shards-dir train_graphs_data_ogb \
     --labels-csv train_dataset.csv \
     --label-col gap_val \
-    --prefix train \
     --out-dir train_graphs_data_ogb_with_labels
 ```
 
