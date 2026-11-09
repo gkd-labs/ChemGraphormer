@@ -1,6 +1,7 @@
 """
 Attach labels to sharded graph files produced by run_sharded.py and save one
-labeled PyG dataset list per shard.
+labeled PyG dataset list per shard. Each source shard is DELETED as soon as its
+labeled shard has been written successfully (use --keep-source-shards to keep them).
 
 Labels are matched using each shard's "indices" (row numbers in the original
 CSV), so molecules dropped for invalid SMILES do not shift the alignment.
@@ -8,6 +9,8 @@ CSV), so molecules dropped for invalid SMILES do not shift the alignment.
 Usage:
     python utils/add_labels_sharded.py --shards-dir dataset --labels-csv dataset.csv \
         --label-col gap_val --out-dir labels
+
+To merge the labeled shards into a single file afterwards, see combine_shards.py.
 
 IMPORTANT: --labels-csv must be the SAME file, in the SAME row order, that was
 passed to run_sharded.py (no sorting / shuffling / filtering beforehand).
@@ -52,7 +55,7 @@ def label_shard(shard, labels_all):
     return out
 
 
-def add_graph_labels_sharded(shards_dir, labels_csv, out_dir, label_col="gap_val"):
+def add_graph_labels_sharded(shards_dir, labels_csv, out_dir, label_col="gap_val", keep_source=False):
     os.makedirs(out_dir, exist_ok=True)
 
     labels_all = torch.tensor(
@@ -66,8 +69,12 @@ def add_graph_labels_sharded(shards_dir, labels_csv, out_dir, label_col="gap_val
     total = 0
     for path in tqdm(paths, desc="Labeling shards"):
         out_path = os.path.join(out_dir, "labeled_" + os.path.basename(path))
+
         if os.path.exists(out_path):
-            continue  # resumable
+            # Already labeled (e.g. a previous run was interrupted after saving but before deleting)
+            if not keep_source and os.path.exists(path):
+                os.remove(path)
+            continue
 
         shard = torch.load(path, weights_only=False)
         if max(shard["indices"], default=-1) >= len(labels_all):
@@ -79,9 +86,12 @@ def add_graph_labels_sharded(shards_dir, labels_csv, out_dir, label_col="gap_val
         data_list = label_shard(shard, labels_all)
         tmp = out_path + ".tmp"
         torch.save(data_list, tmp)
-        os.replace(tmp, out_path)
+        os.replace(tmp, out_path)          # labeled shard is now safely on disk
         total += len(data_list)
         del shard, data_list
+
+        if not keep_source:
+            os.remove(path)                # only reached if the labeled shard was written successfully
 
     print(f"Labeled {total} graphs this run -> {out_dir}")
 
@@ -94,6 +104,9 @@ if __name__ == "__main__":
     p.add_argument("--labels-csv", required=True, help="Same CSV, same row order, as given to run_sharded.py")
     p.add_argument("--label-col", default="gap_val")
     p.add_argument("--out-dir", default="labeled_shards")
+    p.add_argument("--keep-source-shards", action="store_true",
+                   help="Do not delete the unlabeled shards after labeling (default: delete them).")
     args = p.parse_args()
 
-    add_graph_labels_sharded(args.shards_dir, args.labels_csv, args.out_dir, args.label_col)
+    add_graph_labels_sharded(args.shards_dir, args.labels_csv, args.out_dir,
+                             args.label_col, keep_source=args.keep_source_shards)
