@@ -91,47 +91,51 @@ Each split CSV has `smiles` and `zero_point_energy` columns, ready for Section 4
 ## 4. Graph Data Computation
 
 > **Note:** Run this section in a terminal with `graph_requirements_cpu_only.txt` (CPU-only machine) or `graph_requirements_gpu_avaialble.txt` (GPU-available machine) installed, see Section 2. Graph computation currently **cannot run in Google Colab**, on either CPU or GPU, since there is no DGL wheel there compatible with any available torch and Python version. Pass your input CSV's SMILES column name to `--smiles-col`, or it defaults to `smiles`.
-> `utils/graph_generator.py` handles all graph computation. Only set `--k` to the max heavy-atom (node) Laplacian positional encoding (PE) dimension: **k = 9** for QM9 ablation, **k = 51** for OGB pretraining.
+> `utils/run_sharded.py` handles all graph computation. Only set `--k` to the max heavy-atom (node) Laplacian positional encoding (PE) dimension: **k = 9** for QM9 ablation, **k = 51** for OGB pretraining.
 
 ### Compute graphs
 
 ```bash
 # QM9 ablation (k = 9)
-python utils/graph_generator.py \
+python utils/run_sharded.py \
     --input qm9_train.csv \
     --smiles-col smiles \
     --k 9 \
-    --output graph_data_train.pt
+    --prefix train \
+    --out-dir train_graphs_data_qm9
 
 # OGB PCQM4Mv2 (k = 51)
-python utils/graph_generator.py \
+python utils/run_sharded.py \
     --input train_dataset.csv \
     --smiles-col smiles \
     --k 51 \
-    --output graph_data_train.pt
+    --prefix train \
+    --out-dir train_graphs_data_ogb
 ```
 
-Repeat for each split (`--input qm9_val.csv`, `qm9_test.csv`, etc.), pointing `--output` to a distinct `.pt` file per split.
+Repeat for each split (`--input qm9_val.csv`, `qm9_test.csv`, etc.), pointing `--out-dir` to a distinct `directory` per split.
 
 ### Attach labels
 
 ```bash
 # QM9 ablation
-python utils/add_graph_labels.py \
-    --graphs graph_data_train.pt \
+python utils/add_labels_sharded.py \
+    --shards-dir train_graphs_data_qm9 \
     --labels-csv qm9_train.csv \
     --label-col zero_point_energy \
-    --output train_graphs.pt
+    --prefix train \
+    --out-dir train_graphs_data_ogb_with_labels
 
 # OGB PCQM4Mv2
 python utils/add_graph_labels.py \
-    --graphs graph_data_train.pt \
+    --shards-dir train_graphs_data_ogb \
     --labels-csv train_dataset.csv \
     --label-col gap_val \
-    --output train_graphs.pt
+    --prefix train \
+    --out-dir train_graphs_data_ogb_with_labels
 ```
 
-This saves a list of `torch_geometric.data.Data` objects (`x`, `edge_index`, `edge_attr`, `y`, `lap_pos`) to the `--output` path, ready for Section 5/7 training. Repeat for each split.
+This saves a list of `torch_geometric.data.Data` objects (`x`, `edge_index`, `edge_attr`, `y`, `lap_pos`) to the `--out-dir` path, ready for Section 5/7 training. Repeat for each split.
 
 ---
 
