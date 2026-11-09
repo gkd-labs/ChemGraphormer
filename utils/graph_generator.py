@@ -4,7 +4,21 @@ spectra graph. PE has a dimension of 51.
 
 Generate pytorch geometry Data objects for molecules. Nodes, Edges and PE in Data object.
 Data object(s) is/are a list(s)
+
+Parallel version: molecules are processed across all available CPU cores
+(auto-detected, respecting affinity / cgroup-style CPU limits). Output order
+and skipping behaviour are identical to the serial version.
 """
+
+import os
+
+# Each worker is kept single-threaded so N processes don't each spawn N BLAS threads.
+for _v in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS", "NUMEXPR_NUM_THREADS"):
+    os.environ.setdefault(_v, "1")
+
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module=r"torchdata.*")
+warnings.filterwarnings("ignore", message=r"(?s).*datapipes.*deprecated.*")
 
 import dgl_compat_shim
 import dgl
@@ -12,6 +26,7 @@ import rdkit
 import torch
 import logging
 import numpy as np
+import multiprocessing as mp
 from rdkit import Chem, RDLogger
 import networkx as nx
 from tqdm import tqdm
@@ -126,10 +141,10 @@ def encode_graph_features(node_features, edge_features):
 
     return encoded_node_features, encoded_edge_features
 
-def run_graph_generator(smiles_list, k=51):
-   
-    config = gm.MoleculeGraphConfig(
-            node_metadata_functions=[
+
+def _build_config():
+    return gm.MoleculeGraphConfig(
+        node_metadata_functions=[
             gm.atom_type_one_hot,
             gm.atomic_mass,
             gm.degree,
@@ -160,98 +175,159 @@ def run_graph_generator(smiles_list, k=51):
             partial(gm.bond_is_in_ring_size, ring_size=5),
             partial(gm.bond_is_in_ring_size, ring_size=7)
         ]
-
     )
-   
+
+
+# Per-process globals (set by _init_worker)
+_CONFIG = None
+_K = 51
+
+
+def _init_worker(k):
+    global _CONFIG, _K
+    torch.set_num_threads(1)
+    RDLogger.DisableLog('rdApp.*')
+    _CONFIG = _build_config()
+    _K = k
+
+
+def _process_one(smiles):
+    """Process one SMILES. Returns (node_np, edge_np, edge_pairs, lap_np) or None if skipped."""
+    config, k = _CONFIG, _K
+    try:
+        mol = Chem.MolFromSmiles(smiles)
+        if mol is None:
+            logger.error(f"Invalid SMILES string: {smiles}")
+            return None
+        graph = gm.construct_graph(smiles=smiles, config=config)
+    except Exception as e:
+        logger.error(f"Error constructing graph for SMILES {smiles}: {e}")
+        return None
+
+    node_features = []
+    edge_features = []
+    edge_pairs_num = []
+    node_ids_labels = []
+
+    node_id_mapping = {nid: int(nid.split(':')[1]) for nid in graph.nodes}
+
+    for n, d in graph.nodes(data=True):
+        all_node_values = list(d.values())
+        node_features.append(all_node_values[4:] if len(all_node_values) > 4 else [])
+        node_ids_labels.append(n.split(':')[0])
+
+    for u, v, d in graph.edges(data=True):
+        all_edge_values = list(d.values())
+        edge_features.append(all_edge_values[2:] if len(all_edge_values) > 2 else [])
+        edge_pairs_num.append((node_id_mapping[u], node_id_mapping[v]))
+
+    node_features, edge_features = encode_graph_features(node_features, edge_features)
+
+    num_nodes = len(node_ids_labels)
+    src, dst = zip(*edge_pairs_num) if edge_pairs_num else ([], [])
+    src = torch.tensor(src, dtype=torch.int64)
+    dst = torch.tensor(dst, dtype=torch.int64)
+    g = dgl.graph((src, dst), num_nodes=num_nodes)
+
+    if edge_pairs_num:
+        edge_pairs_num.extend([(edge[1], edge[0]) for edge in edge_pairs_num])
+
+    processed_node_features = []
+    for feats in node_features:
+        flattened = []
+        for idx, feat in enumerate(feats):
+            if idx == 0 and isinstance(feat, np.ndarray):
+                flattened.extend(feat.flatten().tolist())
+            elif isinstance(feat, np.ndarray):
+                flattened.extend(feat.flatten().tolist()) if feat.size > 1 else flattened.append(float(feat.item()))
+            else:
+                flattened.append(float(feat))
+        processed_node_features.append(flattened)
+
+    node_feature_tensor = torch.tensor(processed_node_features, dtype=torch.float32)
+    processed_edge_features = [[int(f) for f in feats] for feats in edge_features]
+
+    if processed_edge_features:
+        edge_feature_tensor = torch.tensor(processed_edge_features, dtype=torch.float32)
+    else:
+        edge_feature_tensor = torch.empty(0, 7)
+
+    g.ndata['h'] = node_feature_tensor
+    g.ndata['atom_type_and_id'] = torch.arange(len(node_ids_labels), dtype=torch.int64)
+
+    if edge_feature_tensor.numel() > 0:
+        g.edata['features'] = edge_feature_tensor
+
+    if g.num_edges() > 0:
+        g = dgl.add_reverse_edges(g, copy_ndata=True, copy_edata=True)
+
+    if g.num_nodes() > 0:
+        laplacian_pos = dgl.lap_pe(g, k=k, padding=True)
+    else:
+        laplacian_pos = torch.empty(0, 51)
+
+    node_features_tensor_extract = g.ndata['h']
+
+    if 'features' in g.edata:
+        edge_features_tensor_extract = g.edata['features']
+    else:
+        edge_features_tensor_extract = torch.empty(0, 7)
+
+    # numpy for cheap, fd-safe transfer back to the parent process
+    return (
+        node_features_tensor_extract.numpy(),
+        edge_features_tensor_extract.numpy(),
+        edge_pairs_num,
+        laplacian_pos.numpy(),
+    )
+
+
+def get_num_workers():
+    """Number of CPU cores actually available to this process."""
+    try:
+        return max(1, len(os.sched_getaffinity(0)))  # respects taskset / SLURM / container pinning
+    except AttributeError:
+        return max(1, os.cpu_count() or 1)
+
+
+def run_graph_generator(smiles_list, k=51, n_jobs=None):
+    """
+    n_jobs=None -> auto-detect all available cores. n_jobs=1 -> serial.
+    Returns four lists, in input order, with failed/invalid SMILES skipped.
+    """
+    smiles_list = list(smiles_list)
+    n_jobs = get_num_workers() if n_jobs is None else max(1, int(n_jobs))
+    n_jobs = min(n_jobs, max(1, len(smiles_list)))
+    logger.info(f"Processing {len(smiles_list)} molecules with {n_jobs} worker(s)")
+
+    if n_jobs == 1:
+        _init_worker(k)
+        results = (_process_one(s) for s in tqdm(smiles_list, desc="Computing graph and extracting data...", leave=False))
+        results = list(results)
+    else:
+        chunksize = max(1, min(64, len(smiles_list) // (n_jobs * 4)))
+        ctx = mp.get_context("spawn")
+        with ctx.Pool(processes=n_jobs, initializer=_init_worker, initargs=(k,)) as pool:
+            results = list(tqdm(
+                pool.imap(_process_one, smiles_list, chunksize=chunksize),  # ordered
+                total=len(smiles_list),
+                desc="Computing graph and extracting data...",
+                leave=False,
+            ))
+
     node_features_tensor_list = []
     edge_features_tensor_list = []
     edge_pairs_list = []
     laplacian_positional_embed_51_dim = []
 
-    for smiles in tqdm(smiles_list, desc="Computing graph and extracting data...", leave=False):
-        try:
-            mol = Chem.MolFromSmiles(smiles)
-            if mol is None:
-                logger.error(f"Invalid SMILES string: {smiles}")
-                continue
-            graph = gm.construct_graph(smiles=smiles, config=config)
-        except Exception as e:
-            logger.error(f"Error constructing graph for SMILES {smiles}: {e}")
+    for r in results:
+        if r is None:
             continue
-
-        node_features = []
-        edge_features = []
-        edge_pairs_num = []
-        node_ids_labels = []
-
-        node_id_mapping = {nid: int(nid.split(':')[1]) for nid in graph.nodes}
-
-        for n, d in graph.nodes(data=True):
-            all_node_values = list(d.values())
-            node_features.append(all_node_values[4:] if len(all_node_values) > 4 else [])
-            node_ids_labels.append(n.split(':')[0])
-
-        for u, v, d in graph.edges(data=True):
-            all_edge_values = list(d.values())
-            edge_features.append(all_edge_values[2:] if len(all_edge_values) > 2 else [])
-            edge_pairs_num.append((node_id_mapping[u], node_id_mapping[v]))
-
-        node_features, edge_features = encode_graph_features(node_features, edge_features)
-
-        num_nodes = len(node_ids_labels)
-        src, dst = zip(*edge_pairs_num) if edge_pairs_num else ([], [])
-        src = torch.tensor(src, dtype=torch.int64)
-        dst = torch.tensor(dst, dtype=torch.int64)
-        g = dgl.graph((src, dst), num_nodes=num_nodes)
-
-        if edge_pairs_num:
-            edge_pairs_num.extend([(edge[1], edge[0]) for edge in edge_pairs_num])
-
-        processed_node_features = []
-        for feats in node_features:
-            flattened = []
-            for idx, feat in enumerate(feats):
-                if idx == 0 and isinstance(feat, np.ndarray):
-                    flattened.extend(feat.flatten().tolist())
-                elif isinstance(feat, np.ndarray):
-                    flattened.extend(feat.flatten().tolist()) if feat.size > 1 else flattened.append(float(feat.item()))
-                else:
-                    flattened.append(float(feat))
-            processed_node_features.append(flattened)
-
-        node_feature_tensor = torch.tensor(processed_node_features, dtype=torch.float32)
-        processed_edge_features = [[int(f) for f in feats] for feats in edge_features]
-
-        if processed_edge_features:
-             edge_feature_tensor = torch.tensor(processed_edge_features, dtype=torch.float32)
-        else:
-             edge_feature_tensor = torch.empty(0, 7)
-
-        g.ndata['h'] = node_feature_tensor
-        g.ndata['atom_type_and_id'] = torch.arange(len(node_ids_labels), dtype=torch.int64)
-
-        if edge_feature_tensor.numel() > 0:
-            g.edata['features'] = edge_feature_tensor
-
-        if g.num_edges() > 0:
-             g = dgl.add_reverse_edges(g, copy_ndata=True, copy_edata=True)
-
-        if g.num_nodes() > 0:
-            laplacian_pos = dgl.lap_pe(g, k=k, padding=True)
-            laplacian_positional_embed_51_dim.append(laplacian_pos)
-        else:
-            laplacian_positional_embed_51_dim.append(torch.empty(0, 51))
-
-        node_features_tensor_extract = g.ndata['h']
-
-        if 'features' in g.edata:
-             edge_features_tensor_extract = g.edata['features']
-        else:
-             edge_features_tensor_extract = torch.empty(0, 7)
-
-        node_features_tensor_list.append(node_features_tensor_extract)
-        edge_features_tensor_list.append(edge_features_tensor_extract)
-        edge_pairs_list.append(edge_pairs_num)
+        node_np, edge_np, pairs, lap_np = r
+        node_features_tensor_list.append(torch.from_numpy(node_np))
+        edge_features_tensor_list.append(torch.from_numpy(edge_np))
+        edge_pairs_list.append(pairs)
+        laplacian_positional_embed_51_dim.append(torch.from_numpy(lap_np))
 
     return node_features_tensor_list, edge_features_tensor_list, edge_pairs_list, laplacian_positional_embed_51_dim
 
@@ -276,6 +352,10 @@ if __name__ == "__main__":
         help="Dimension of the Laplacian positional encoding (default: 51)."
     )
     parser.add_argument(
+        "--n-jobs", type=int, default=None,
+        help="Number of worker processes (default: auto-detect all available CPU cores)."
+    )
+    parser.add_argument(
         "--output", type=str, default="graph_data.pt",
         help="Path to save the resulting tensors via torch.save (default: 'graph_data.pt')."
     )
@@ -285,7 +365,7 @@ if __name__ == "__main__":
     smiles_list = df[args.smiles_col].tolist()
 
     node_features_tensor_list, edge_features_tensor_list, edge_pairs_list, laplacian_positional_embed_51_dim = run_graph_generator(
-        smiles_list, k=args.k
+        smiles_list, k=args.k, n_jobs=args.n_jobs
     )
 
     torch.save(
