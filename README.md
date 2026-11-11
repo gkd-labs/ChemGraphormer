@@ -246,10 +246,10 @@ python utils/predict_zpve_values_meanpl.py \
     --split           test
 ```
 
-### Compute convergence efficiency
+### Compute Absolute Performance in MAE Relative to The Reference Ablation Variant
 
 ```bash
-python utils/compute_convergence_efficiency.py --log_path gate0/log_gate0.csv
+python utils/compute_absolute_relative_perf.py --log_path gate0/log_gate0.csv
 ```
 
 ---
@@ -262,7 +262,7 @@ python utils/pred_download_pcqm4mv2.py
 ```
 
 >**Note**: Input SMILES CSVs have SMILES strings column name as `smiles` and their corresponding gap values column as `gap_val`. These column name must be correctly specified in the graph computation method. test-dev and test-challenge splits have hidden labels, so their gap_val column will be NaN. That’s expected.
-Graph computation for OGB follows the same steps as Section 4, using `utils/graph_generator.py` with `--k 51`.
+Graph computation for OGB follows the same steps as Section 4, with `--k 51` set.
 
 ### Run training
 
@@ -289,14 +289,16 @@ python utils/train_chemgraphormer_meanp_reactive.py \
     --lr_mult_phase3   0.5 \
     --lr_mult_phase4   0.25 \
     --num_classes      1 \
-    --d_model          512 \
-    --d_ff             2048 \
-    --n_heads          16 \
-    --num_layers       8 \
+    --d_model          384 \
+    --d_ff             2688 \
+    --n_heads          12 \
+    --num_layers       12 \
     --num_freqs        16 \
-    --dropout          0.15 \
+    --dropout          0.05 \
     --seed              123
 ```
+>**Note**: Please ensure you manually set the layer indices and their learning rates schedule from the `train_chemgraphormer_meanp_reactive.py` script in utils if you want to use different number of layers either than what is used in this tutorial. 
+
 
 ### Make predictions
 
