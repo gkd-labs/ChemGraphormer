@@ -89,14 +89,18 @@ def build_optimizer(model, lr_multiplier, base_lr, weight_decay):
     return torch.optim.AdamW([
         {"params": model.encoder.embed.parameters(), "lr": base_lr * lr_multiplier * 1.0},
         {"params": model.encoder.layers[0].parameters(), "lr": base_lr * lr_multiplier * 0.9},
-        {"params": model.encoder.layers[1].parameters(), "lr": base_lr * lr_multiplier * 0.8},
-        {"params": model.encoder.layers[2].parameters(), "lr": base_lr * lr_multiplier * 0.7},
-        {"params": model.encoder.layers[3].parameters(), "lr": base_lr * lr_multiplier * 0.6},
-        {"params": model.encoder.layers[4].parameters(), "lr": base_lr * lr_multiplier * 0.5},
-        {"params": model.encoder.layers[5].parameters(), "lr": base_lr * lr_multiplier * 0.4},
-        {"params": model.encoder.layers[6].parameters(), "lr": base_lr * lr_multiplier * 0.3},
-        {"params": model.encoder.layers[7].parameters(), "lr": base_lr * lr_multiplier * 0.2},
-        {"params": model.head.parameters(), "lr": base_lr * lr_multiplier * 10.0},
+        {"params": model.encoder.layers[1].parameters(), "lr": base_lr * lr_multiplier * 0.9},
+        {"params": model.encoder.layers[2].parameters(), "lr": base_lr * lr_multiplier * 0.8},
+        {"params": model.encoder.layers[3].parameters(), "lr": base_lr * lr_multiplier * 0.8},
+        {"params": model.encoder.layers[4].parameters(), "lr": base_lr * lr_multiplier * 0.7},
+        {"params": model.encoder.layers[5].parameters(), "lr": base_lr * lr_multiplier * 0.7},
+        {"params": model.encoder.layers[6].parameters(), "lr": base_lr * lr_multiplier * 0.6},
+        {"params": model.encoder.layers[7].parameters(), "lr": base_lr * lr_multiplier * 0.6},
+        {"params": model.encoder.layers[8].parameters(), "lr": base_lr * lr_multiplier * 0.5},
+        {"params": model.encoder.layers[9].parameters(), "lr": base_lr * lr_multiplier * 0.4},
+        {"params": model.encoder.layers[10].parameters(), "lr": base_lr * lr_multiplier * 0.3},
+        {"params": model.encoder.layers[11].parameters(), "lr": base_lr * lr_multiplier * 0.2},
+        {"params": model.head.parameters(), "lr": base_lr * lr_multiplier * 5.0},
     ], weight_decay=weight_decay)
 
 
