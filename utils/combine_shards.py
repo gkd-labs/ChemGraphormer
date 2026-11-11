@@ -1,74 +1,142 @@
 """
 Combine all labeled shards (labeled_shard_*.pt from add_labels_sharded.py) into a
-single .pt file containing one list of PyG Data objects, in original CSV order.
+SINGLE file, streaming one shard at a time with constant memory.
 
-After the final file has been written successfully, ALL the labeled shards that
-were combined are DELETED.
+Each labeled shard is copied byte-for-byte into the final file (no loading into
+RAM), fsynced, and then that exact shard file is DELETED before the next one is
+processed. A footer index is written at the end so any shard can be read back
+individually.
 
-NOTE: the whole dataset must fit in RAM at once. The script estimates the needed
-memory from the shard sizes and stops before loading anything if it won't fit
-(override with --force).
+The final file is NOT a plain torch.load()-able list (a normal .pt cannot be
+appended to). Read it with the ShardedPT class below:
+
+    from combine_shards import ShardedPT
+    ds = ShardedPT("final.pt")
+    len(ds)            # number of shards
+    shard = ds[0]      # list of PyG Data objects (loads only that shard)
+    for shard in ds:   # iterate shard by shard
+        ...
+
+Resumable: if interrupted, re-run the same command. Partially written trailing
+data is detected and discarded, shards already inside the file are not copied
+again, and any leftover duplicate source shard is deleted.
 
 Usage:
     python combine_shards.py --labeled-dir labels --output final.pt
 """
 import glob
+import io
+import json
 import os
+import shutil
+import struct
 
 import torch
 from tqdm import tqdm
 
-
-def _mem_available_bytes():
-    try:
-        with open("/proc/meminfo") as f:
-            for line in f:
-                if line.startswith("MemAvailable:"):
-                    return int(line.split()[1]) * 1024
-    except OSError:
-        pass
-    return None
+REC_MAGIC = b"SHRD"
+END_MAGIC = b"SHRDEND1"
+REC_HDR = struct.Struct("<4sHQ")   # record magic, name length, data length
+TAIL = struct.Struct("<Q8s")       # index json length, end magic
 
 
-def combine_labeled_shards(labeled_dir, output_path, force=False):
+def _scan_records(f, file_size):
+    """Walk the complete records already in the file. Returns (index, end_of_last_good_record)."""
+    index, pos = [], 0
+    while pos + REC_HDR.size <= file_size:
+        f.seek(pos)
+        magic, name_len, data_len = REC_HDR.unpack(f.read(REC_HDR.size))
+        if magic != REC_MAGIC:
+            break
+        end = pos + REC_HDR.size + name_len + data_len
+        if end > file_size:
+            break  # partially written record
+        name = f.read(name_len).decode()
+        index.append({"name": name, "offset": pos + REC_HDR.size + name_len, "length": data_len})
+        pos = end
+    return index, pos
+
+
+def combine_labeled_shards(labeled_dir, output_path):
     if os.path.exists(output_path):
         raise FileExistsError(f"{output_path} already exists; refusing to overwrite it.")
 
+    tmp = output_path + ".tmp"
     paths = sorted(glob.glob(os.path.join(labeled_dir, "labeled_shard_*.pt")))
-    if not paths:
+    resuming = os.path.exists(tmp)
+    if not paths and not resuming:
         raise FileNotFoundError(f"No labeled_shard_*.pt files in {labeled_dir}")
 
-    on_disk = sum(os.path.getsize(p) for p in paths)
-    est = int(on_disk * 1.5)  # rough: in-memory size of the Data objects vs. file size
-    avail = _mem_available_bytes()
-    gb = 1024 ** 3
-    print(f"Combining {len(paths)} shards: ~{on_disk / gb:.1f} GB on disk, "
-          f"estimated ~{est / gb:.1f} GB RAM needed"
-          + (f", {avail / gb:.1f} GB available" if avail else ""))
-    if avail is not None and est > avail and not force:
-        raise MemoryError(
-            "The combined dataset probably does not fit in available RAM. "
-            "Nothing was loaded or deleted. Re-run with --force to try anyway."
-        )
+    with open(tmp, "r+b" if resuming else "w+b") as f:
+        index = []
+        if resuming:
+            size = os.path.getsize(tmp)
+            index, good_end = _scan_records(f, size)
+            if good_end < size:
+                f.truncate(good_end)   # drop a half-written record / stale footer
+            f.seek(good_end)
+            done = {e["name"] for e in index}
+            for p in paths:            # crashed after copying but before deleting
+                if os.path.basename(p) in done:
+                    os.remove(p)
+            paths = [p for p in paths if os.path.basename(p) not in done]
+            print(f"Resuming: {len(index)} shards already in {tmp}, {len(paths)} left")
 
-    all_data = []
-    for p in tqdm(paths, desc="Loading shards"):
-        all_data.extend(torch.load(p, weights_only=False))
-    n_graphs = len(all_data)
+        for p in tqdm(paths, desc="Moving shards into final file"):
+            name = os.path.basename(p)
+            name_b = name.encode()
+            size = os.path.getsize(p)
 
-    tmp = output_path + ".tmp"
-    torch.save(all_data, tmp)
+            f.write(REC_HDR.pack(REC_MAGIC, len(name_b), size))
+            f.write(name_b)
+            data_off = f.tell()
+            with open(p, "rb") as src:
+                shutil.copyfileobj(src, f, 16 * 1024 * 1024)
+            if f.tell() - data_off != size:
+                raise RuntimeError(f"Short copy of {p}; shard NOT deleted.")
+
+            f.flush()
+            os.fsync(f.fileno())       # bytes are on disk before we delete the source
+            index.append({"name": name, "offset": data_off, "length": size})
+            os.remove(p)               # free this shard's disk space right away
+
+        idx = json.dumps(index).encode()
+        f.write(idx)
+        f.write(TAIL.pack(len(idx), END_MAGIC))
+        f.flush()
+        os.fsync(f.fileno())
+
     os.replace(tmp, output_path)
-    del all_data
+    print(f"Wrote {len(index)} shards to {output_path} ({os.path.getsize(output_path) / 1024**3:.2f} GB); "
+          f"all source shards deleted.")
 
-    if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
-        raise RuntimeError("Final file was not written correctly; shards were NOT deleted.")
-    print(f"Saved {n_graphs} labeled graphs to {output_path}")
 
-    # Final file is safely on disk: remove the shards that went into it.
-    for p in tqdm(paths, desc="Deleting shards"):
-        os.remove(p)
-    print(f"Deleted {len(paths)} labeled shards from {labeled_dir}")
+class ShardedPT:
+    """Random access to the shards inside a file made by combine_labeled_shards."""
+
+    def __init__(self, path):
+        self.path = path
+        with open(path, "rb") as f:
+            f.seek(-TAIL.size, os.SEEK_END)
+            n, magic = TAIL.unpack(f.read(TAIL.size))
+            if magic != END_MAGIC:
+                raise ValueError(f"{path} is not a complete combined shard file (missing footer).")
+            f.seek(-(TAIL.size + n), os.SEEK_END)
+            self.index = json.loads(f.read(n))
+
+    def __len__(self):
+        return len(self.index)
+
+    def __getitem__(self, i):
+        e = self.index[i]
+        with open(self.path, "rb") as f:
+            f.seek(e["offset"])
+            buf = f.read(e["length"])
+        return torch.load(io.BytesIO(buf), weights_only=False)
+
+    def __iter__(self):
+        for i in range(len(self)):
+            yield self[i]
 
 
 if __name__ == "__main__":
@@ -76,9 +144,7 @@ if __name__ == "__main__":
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--labeled-dir", required=True, help="Folder with labeled_shard_*.pt")
-    ap.add_argument("--output", required=True, help="Path of the single combined .pt file")
-    ap.add_argument("--force", action="store_true",
-                    help="Combine even if the estimated size exceeds available RAM.")
+    ap.add_argument("--output", required=True, help="Path of the single combined file")
     args = ap.parse_args()
 
-    combine_labeled_shards(args.labeled_dir, args.output, force=args.force)
+    combine_labeled_shards(args.labeled_dir, args.output)
