@@ -227,9 +227,9 @@ def train_with_meanp_gate0_reactive(args):
 
         if 1 <= epoch <= 30:
             new_batch_size, lr_multiplier = args.bs_phase1, args.lr_mult_phase1
-        elif 31 <= epoch <= 100:
+        elif 31 <= epoch <= 150:
             new_batch_size, lr_multiplier = args.bs_phase2, args.lr_mult_phase2
-        elif 101 <= epoch <= 150:
+        elif 151 <= epoch <= 250:
             new_batch_size, lr_multiplier = args.bs_phase3, args.lr_mult_phase3
         else:
             new_batch_size, lr_multiplier = args.bs_phase4, args.lr_mult_phase4
