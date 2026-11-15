@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from model.chemgraphormer_ablate_static_edge_flow import ChemGraphormerClassifier
-from combine_shards import CombinedGraphs
+from utils.combine_shards import CombinedGraphs
 
 
 def parse_args():
